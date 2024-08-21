@@ -26,6 +26,11 @@ pub fn main() !void {
     var win = try dvui.Window.init(@src(), gpa, backend.backend(), .{ .theme = &dvui.Theme.AdwaitaDark });
     defer win.deinit();
 
+    //
+    var desired_ratio: f128 = 1;
+    var show_candidates = false;
+    var candidates: [32]gear.Gear = undefined;
+
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
 
@@ -43,7 +48,56 @@ pub fn main() !void {
 
         ray.ClearBackground(RaylibBackend.dvuiColorToRaylib(dvui.themeGet().color_fill_window));
 
-        ray.DrawText("Congrats! You Combined Raylib, Raygui and DVUI!", 20, 400, 20, ray.RAYWHITE);
+        {
+            var box = try dvui.box(@src(), .horizontal, .{});
+            defer box.deinit();
+
+            try dvui.label(@src(), "Desired Ratio", .{}, .{});
+
+            const result = try dvui.textEntryNumber(@src(), f128, .{}, .{});
+            if (result == .Valid) {
+                desired_ratio = result.Valid;
+            }
+        }
+
+        //ray.DrawText("Congrats! You Combined Raylib, Raygui and DVUI!", 20, 400, 20, ray.RAYWHITE);
+        if (try dvui.button(@src(), "Calculate", .{}, .{})) {
+            show_candidates = true;
+            candidates = try gear.deriveGearFromRatio(
+                std.heap.c_allocator,
+                .{ .input = 1, .output = desired_ratio },
+                25,
+                75,
+            );
+        }
+
+        _ = dvui.spacer(@src(), .{ .h = 20 }, .{});
+        if (show_candidates) {
+            try dvui.label(
+                @src(),
+                "Gear Rankings",
+                .{},
+                .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal },
+            );
+
+            var box = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1), .expand = .both });
+            defer box.deinit();
+
+            var scroll = try dvui.scrollArea(@src(), .{}, .{ .expand = .both });
+            defer scroll.deinit();
+
+            var vbox = try dvui.box(@src(), .vertical, .{ .min_size_content = .{ .h = 100 } });
+            defer vbox.deinit();
+
+            for (&candidates, 0..) |gr, i| {
+                try dvui.label(
+                    @src(),
+                    "Rank #{}:  {} / {}      deviation: {d}",
+                    .{ i + 1, gr.output_spokes, gr.input_spokes, gr.diff(desired_ratio) },
+                    .{ .id_extra = i },
+                );
+            }
+        }
 
         _ = try win.end(.{});
 
