@@ -92,9 +92,9 @@ pub fn main() !void {
             for (&candidates, 0..) |gr, i| {
                 try dvui.label(
                     @src(),
-                    "Rank #{}:  {} / {}      deviation: {d}",
-                    .{ i + 1, gr.output_spokes, gr.input_spokes, gr.diff(desired_ratio) },
-                    .{ .id_extra = i },
+                    "Rank #{d:0>2}: Gear = {} / {}       Ratio = {d: <8.8}        Error Per Rotation = {d:.5}",
+                    .{ i + 1, gr.output_spokes, gr.input_spokes, gr.toRatio().toDecimal(), gr.diff(desired_ratio) },
+                    .{ .id_extra = i, .font = .{ .name = "Hack", .size = 15 } },
                 );
             }
         }
