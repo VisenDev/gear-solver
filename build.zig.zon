@@ -1,0 +1,11 @@
+.{
+    .name = "gears",
+    .version = "0.0.0",
+    .paths = .{""},
+    .dependencies = .{
+        .dvui = .{
+            .url = "https://github.com/david-vanderson/dvui/archive/refs/heads/main.tar.gz",
+            .hash = "122096dd2a4f785a83b140ee9cd23e346b3c6f18acb506ef1253dc3b92fbdf6eba4c",
+        },
+    },
+}
