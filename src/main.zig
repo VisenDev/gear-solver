@@ -2,8 +2,10 @@ const std = @import("std");
 const dvui = @import("dvui");
 const RaylibBackend = @import("RaylibBackend");
 const ray = RaylibBackend.c;
+//n
 
 pub const gear = @import("gear.zig");
+pub const sim = @import("simulation.zig");
 
 pub fn main() !void {
     var gpa_instance = std.heap.GeneralPurposeAllocator(.{}){};
@@ -63,12 +65,7 @@ pub fn main() !void {
         //ray.DrawText("Congrats! You Combined Raylib, Raygui and DVUI!", 20, 400, 20, ray.RAYWHITE);
         if (try dvui.button(@src(), "Calculate", .{}, .{})) {
             show_candidates = true;
-            candidates = try gear.deriveGearFromRatio(
-                std.heap.c_allocator,
-                .{ .input = 1, .output = desired_ratio },
-                25,
-                75,
-            );
+            candidates = try gear.deriveSingleGearFromRatio(std.heap.c_allocator, desired_ratio, .{});
         }
 
         _ = dvui.spacer(@src(), .{ .h = 20 }, .{});
@@ -109,38 +106,6 @@ pub fn main() !void {
         }
 
         ray.EndDrawing();
-    }
-}
-
-fn colorPicker(result: *dvui.Color) !void {
-    _ = dvui.spacer(@src(), .{ .w = 10, .h = 10 }, .{});
-    {
-        var overlay = try dvui.overlay(@src(), .{ .min_size_content = .{ .w = 100, .h = 100 } });
-        defer overlay.deinit();
-
-        const bounds = RaylibBackend.dvuiRectToRaylib(overlay.data().contentRectScale().r);
-        var c_color: ray.Color = RaylibBackend.dvuiColorToRaylib(result.*);
-        _ = ray.GuiColorPicker(bounds, "Pick Color", &c_color);
-        result.* = RaylibBackend.raylibColorToDvui(c_color);
-    }
-
-    const color_hex = try result.toHexString();
-
-    {
-        var hbox = try dvui.box(@src(), .horizontal, .{});
-        defer hbox.deinit();
-
-        try dvui.labelNoFmt(@src(), &color_hex, .{
-            .color_text = .{ .color = result.* },
-            .gravity_y = 0.5,
-        });
-
-        const copy = try dvui.button(@src(), "Copy", .{}, .{});
-
-        if (copy) {
-            try dvui.clipboardTextSet(&color_hex);
-            try dvui.toast(@src(), .{ .message = "Copied!" });
-        }
     }
 }
 
