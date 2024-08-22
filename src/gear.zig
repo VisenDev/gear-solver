@@ -123,6 +123,8 @@ pub const num_solutions = 150;
 //}
 
 pub const Gear = struct {
+    pub const max_spokes = 128;
+    pub const min_spokes = 8;
     input_spokes: u8 = 1,
     output_spokes: u8 = 1,
 
@@ -190,36 +192,37 @@ pub fn calculateTotalRatio(gears: []const Gear) Ratio {
 }
 
 //============Comptime method=============
-const RatioCacheEntry = struct {
+//
+//const search_min = 10;
+//const search_max = 90;
+//const num_ratios = (search_max - search_min) * (search_max - search_min);
+//pub fn calculateAllRatios() [num_ratios]RatioCacheEntry {
+//    var result: [num_ratios]RatioCacheEntry = undefined;
+//
+//    var i: usize = 0;
+//    @setEvalBranchQuota(num_ratios * 1000);
+//    for (search_min..search_max) |input| {
+//        for (search_min..search_max) |output| {
+//            const gear = Gear{ .input_spokes = @intCast(input), .output_spokes = @intCast(output) };
+//            const ratio = gear.toRatio().toDecimal();
+//            result[i] = .{ .gear = gear, .ratio = ratio };
+//            i += 1;
+//        }
+//    }
+//
+//    std.sort.heap(RatioCacheEntry, &result, {}, (struct {
+//        pub fn lessThanFn(_: void, a: RatioCacheEntry, b: RatioCacheEntry) bool {
+//            return (a.ratio < b.ratio);
+//        }
+//    }).lessThanFn);
+//    return result;
+//}
+pub const RatioCacheEntry = struct {
     ratio: f128,
     gear: Gear,
 };
 
-const search_min = 10;
-const search_max = 90;
-const num_ratios = (search_max - search_min) * (search_max - search_min);
-pub fn calculateAllRatios() [num_ratios]RatioCacheEntry {
-    var result: [num_ratios]RatioCacheEntry = undefined;
-
-    var i: usize = 0;
-    @setEvalBranchQuota(num_ratios * 1000);
-    for (search_min..search_max) |input| {
-        for (search_min..search_max) |output| {
-            const gear = Gear{ .input_spokes = @intCast(input), .output_spokes = @intCast(output) };
-            const ratio = gear.toRatio().toDecimal();
-            result[i] = .{ .gear = gear, .ratio = ratio };
-            i += 1;
-        }
-    }
-
-    std.sort.heap(RatioCacheEntry, &result, {}, (struct {
-        pub fn lessThanFn(_: void, a: RatioCacheEntry, b: RatioCacheEntry) bool {
-            return (a.ratio < b.ratio);
-        }
-    }).lessThanFn);
-    return result;
-}
-const RATIOS = calculateAllRatios();
+pub const num_ratios = (Gear.max_spokes - Gear.min_spokes) * (Gear.max_spokes - Gear.min_spokes);
 
 pub fn binarySearch(
     comptime T: type,
@@ -243,7 +246,7 @@ pub fn binarySearch(
 }
 
 pub fn gearFromRatio(ratio: f128, opt: GearFromRatioOptions) [num_solutions]Gear {
-    _ = opt; // autofix
+    const RATIOS: [num_ratios]RatioCacheEntry = std.mem.bytesToValue([num_ratios]RatioCacheEntry, @import("ratios").ratios); //calculateAllRatios();
     const median: i128 = binarySearch(RatioCacheEntry, &RATIOS, ratio, (struct {
         pub fn compare(key: f128, item: RatioCacheEntry) std.math.Order {
             if (key > item.ratio) {
@@ -262,10 +265,10 @@ pub fn gearFromRatio(ratio: f128, opt: GearFromRatioOptions) [num_solutions]Gear
     var mode: i8 = 1;
     while (i < result.len) {
         const index: usize = @intCast(median + (offset * mode));
-        //if (RATIOS[index].gear.withinBounds(opt)) {
-        result[i] = RATIOS[index].gear;
-        i += 1;
-        //}
+        if (RATIOS[index].gear.withinBounds(opt)) {
+            result[i] = RATIOS[index].gear;
+            i += 1;
+        }
         if (mode == -1) {
             offset += 1;
             mode = 1;
