@@ -112,27 +112,39 @@ test "solveScrewGear" {
     defer simulation.deinit();
     simulation.input = 10;
     try simulation.addGear(.{ .input_spokes = 35, .output_spokes = 50 });
-    try simulation.addGear(.{ .input_spokes = 135, .output_spokes = 73 });
-    const solution = try gr.deriveTwoGearsFromRatio(
-        std.testing.allocator,
-        simulation.findRatioToCompensate(),
-        .{ .min_spokes = 25, .max_spokes = 75 },
-    );
+    try simulation.addGear(.{ .input_spokes = 35, .output_spokes = 133 });
 
-    const solutionv2 = try gr.deriveTwoGearsFromRatioPrecise(
-        std.testing.allocator,
-        simulation.findRatioToCompensate(),
-        .{ .min_spokes = 25, .max_spokes = 75 },
-    );
+    const solution = gr.gearFromRatio(simulation.findRatioToCompensate(), .{});
 
-    std.debug.print("Found ratio: {d}\n", .{simulation.findRatioToCompensate()});
-    std.debug.print(
-        "Solution Approx: {any}\n    => {d}\n",
-        .{ solution[0], (solution[0][0].toRatio().toDecimal() * solution[0][1].toRatio().toDecimal()) },
-    );
+    std.debug.print("Desired: {d}\n", .{simulation.findRatioToCompensate()});
+    std.debug.print("Result: {any}\n", .{solution[0]});
+    std.debug.print("     => {d}\n", .{solution[0].toRatio().toDecimal()});
 
-    std.debug.print(
-        "Solution Precise: {any}\n    => {d}\n",
-        .{ solutionv2[0], (solutionv2[0][0].toRatio().toDecimal() * solutionv2[0][1].toRatio().toDecimal()) },
-    );
+    //std.debug.print(
+    //    "Solution Precise: {any}\n    => {d}\n",
+    //    .{ solutionv2[0], (solutionv2[0][0].toRatio().toDecimal() * solutionv2[0][1].toRatio().toDecimal()) },
+    //);
+
+    //const solution = try gr.deriveTwoGearsFromRatio(
+    //    std.testing.allocator,
+    //    simulation.findRatioToCompensate(),
+    //    .{ .min_spokes = 25, .max_spokes = 75, .close_enough = 0.0001 },
+    //);
+
+    //const solutionv2 = try gr.deriveTwoGearsFromRatioPrecise(
+    //    std.testing.allocator,
+    //    simulation.findRatioToCompensate(),
+    //    .{ .min_spokes = 25, .max_spokes = 75, .close_enough = 0.0001 },
+    //);
+
+    //std.debug.print("Found ratio: {d}\n", .{simulation.findRatioToCompensate()});
+    //std.debug.print(
+    //    "Solution Approx: {any}\n    => {d}\n",
+    //    .{ solution[0], (solution[0][0].toRatio().toDecimal() * solution[0][1].toRatio().toDecimal()) },
+    //);
+
+    //std.debug.print(
+    //    "Solution Precise: {any}\n    => {d}\n",
+    //    .{ solutionv2[0], (solutionv2[0][0].toRatio().toDecimal() * solutionv2[0][1].toRatio().toDecimal()) },
+    //);
 }

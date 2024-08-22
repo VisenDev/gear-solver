@@ -31,7 +31,7 @@ pub fn main() !void {
     //
     var desired_ratio: f128 = 1;
     var show_candidates = false;
-    var candidates: [32]gear.Gear = undefined;
+    var candidates: [gear.num_solutions]gear.Gear = undefined;
 
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
@@ -65,7 +65,7 @@ pub fn main() !void {
         //ray.DrawText("Congrats! You Combined Raylib, Raygui and DVUI!", 20, 400, 20, ray.RAYWHITE);
         if (try dvui.button(@src(), "Calculate", .{}, .{})) {
             show_candidates = true;
-            candidates = try gear.deriveSingleGearFromRatio(std.heap.c_allocator, desired_ratio, .{});
+            candidates = gear.gearFromRatio(desired_ratio, .{});
         }
 
         _ = dvui.spacer(@src(), .{ .h = 20 }, .{});
