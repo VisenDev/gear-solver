@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -21,9 +21,11 @@ pub fn build(b: *std.Build) void {
     });
 
     //================ADD RATIOS====================
-    const ratios = processAllGears();
     const options = b.addOptions();
-    options.addOption([]const u8, "ratios", &std.mem.toBytes(ratios));
+    const ratios_single = @import("src/gear.zig").processAllGears();
+    const ratios_double = try @import("src/gear.zig").processAllGearPairs(b.allocator);
+    options.addOption([]const u8, "singles", &std.mem.toBytes(ratios_single));
+    options.addOption([]const u8, "pairs", ratios_double);
     exe.root_module.addImport("ratios", options.createModule());
 
     //================ADD DVUI======================
@@ -45,29 +47,4 @@ pub fn build(b: *std.Build) void {
     const run_exe_test = b.addRunArtifact(exe_test);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_test.step);
-}
-
-const Gear = @import("src/gear.zig").Gear;
-const RatioCacheEntry = @import("src/gear.zig").RatioCacheEntry;
-const num_ratios = @import("src/gear.zig").num_ratios;
-
-pub fn processAllGears() [num_ratios]RatioCacheEntry {
-    var result: [num_ratios]RatioCacheEntry = undefined;
-
-    var i: usize = 0;
-    for (Gear.min_spokes..Gear.max_spokes) |input| {
-        for (Gear.min_spokes..Gear.max_spokes) |output| {
-            const gear = Gear{ .input_spokes = @intCast(input), .output_spokes = @intCast(output) };
-            const ratio = gear.toRatio().toDecimal();
-            result[i] = .{ .gear = gear, .ratio = ratio };
-            i += 1;
-        }
-    }
-
-    std.sort.heap(RatioCacheEntry, &result, {}, (struct {
-        pub fn lessThanFn(_: void, a: RatioCacheEntry, b: RatioCacheEntry) bool {
-            return (a.ratio < b.ratio);
-        }
-    }).lessThanFn);
-    return result;
 }
