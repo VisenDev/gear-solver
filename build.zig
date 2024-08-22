@@ -23,10 +23,8 @@ pub fn build(b: *std.Build) !void {
     //================ADD RATIOS====================
     const options = b.addOptions();
     const ratios_single = @import("src/gear.zig").processAllGears();
-    const ratios_double = try @import("src/gear.zig").processAllGearPairs(b.allocator);
-    options.addOption([]const u8, "singles", &std.mem.toBytes(ratios_single));
-    options.addOption([]const u8, "pairs", ratios_double);
-    exe.root_module.addImport("ratios", options.createModule());
+    options.addOption([]const u8, "ratios", &std.mem.toBytes(ratios_single));
+    exe.root_module.addImport("options", options.createModule());
 
     //================ADD DVUI======================
     const dvui = b.dependency("dvui", .{ .target = target, .optimize = optimize });

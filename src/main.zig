@@ -28,10 +28,10 @@ pub fn main() !void {
     var win = try dvui.Window.init(@src(), gpa, backend.backend(), .{ .theme = &dvui.Theme.AdwaitaDark });
     defer win.deinit();
 
-    //
-    var desired_ratio: f128 = 1;
-    var show_candidates = false;
-    var candidates: [gear.num_solutions]gear.Gear = undefined;
+    var simulation = sim.Simulation.init(gpa);
+    defer simulation.deinit();
+    var simulation_gear = gear.Gear{};
+    var output_constraint_type: usize = 0;
 
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
@@ -51,48 +51,102 @@ pub fn main() !void {
         ray.ClearBackground(RaylibBackend.dvuiColorToRaylib(dvui.themeGet().color_fill_window));
 
         {
-            var box = try dvui.box(@src(), .horizontal, .{});
-            defer box.deinit();
+            try dvui.label(@src(), "Gear Solver", .{}, .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal });
+            //=======INPUT CONSTRAINT=======
+            {
+                var box = try dvui.box(@src(), .vertical, .{});
+                defer box.deinit();
 
-            try dvui.label(@src(), "Desired Ratio", .{}, .{});
+                try dvui.label(@src(), "Input Rotations:", .{}, .{});
 
-            const result = try dvui.textEntryNumber(@src(), f128, .{}, .{});
-            if (result == .Valid) {
-                desired_ratio = result.Valid;
+                const result = try dvui.textEntryNumber(@src(), f128, .{}, .{});
+                if (result == .Valid) {
+                    simulation.input = result.Valid;
+                }
             }
-        }
 
-        //ray.DrawText("Congrats! You Combined Raylib, Raygui and DVUI!", 20, 400, 20, ray.RAYWHITE);
-        if (try dvui.button(@src(), "Calculate", .{}, .{})) {
-            show_candidates = true;
-            candidates = gear.gearFromRatio(desired_ratio, .{});
-        }
+            //=======GEARTRAIN DISPLAY========
+            {
+                var vbox = try dvui.box(@src(), .vertical, .{});
+                defer vbox.deinit();
 
-        _ = dvui.spacer(@src(), .{ .h = 20 }, .{});
-        if (show_candidates) {
-            try dvui.label(
-                @src(),
-                "Gear Rankings",
-                .{},
-                .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal },
-            );
+                for (simulation.geartrain.items, 0..) |geartrain_gear, i| {
+                    try dvui.label(@src(), "Gear: {} / {}", .{ geartrain_gear.input_spokes, geartrain_gear.output_spokes }, .{
+                        .id_extra = i,
+                    });
+                }
+            }
 
-            var box = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1), .expand = .both });
-            defer box.deinit();
+            //======NEW GEARTRAIN GEAR INPUT========
+            {
+                var vbox = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1) });
+                defer vbox.deinit();
 
-            var scroll = try dvui.scrollArea(@src(), .{}, .{ .expand = .both });
-            defer scroll.deinit();
+                try dvui.label(@src(), "Add New Gear Linkage To Geartrain", .{}, .{});
 
-            var vbox = try dvui.box(@src(), .vertical, .{ .min_size_content = .{ .h = 100 } });
-            defer vbox.deinit();
+                {
+                    var hbox = try dvui.box(@src(), .vertical, .{});
+                    defer hbox.deinit();
 
-            for (&candidates, 0..) |gr, i| {
-                try dvui.label(
-                    @src(),
-                    "Rank #{d:0>2}: Gear = {} / {}       Ratio = {d: <8.8}        Error Per Rotation = {d:.5}",
-                    .{ i + 1, gr.output_spokes, gr.input_spokes, gr.toRatio().toDecimal(), gr.diff(desired_ratio) },
-                    .{ .id_extra = i, .font = .{ .name = "Hack", .size = 15 } },
-                );
+                    try dvui.label(@src(), "Input Gear Spokes:", .{}, .{});
+                    const input_spokes = try dvui.textEntryNumber(@src(), u8, .{}, .{});
+
+                    if (input_spokes == .Valid) {
+                        simulation_gear.input_spokes = input_spokes.Valid;
+                    }
+                }
+
+                {
+                    var hbox = try dvui.box(@src(), .vertical, .{});
+                    defer hbox.deinit();
+
+                    try dvui.label(@src(), "Output Gear Spokes:", .{}, .{});
+                    const output_spokes = try dvui.textEntryNumber(@src(), u8, .{}, .{});
+                    if (output_spokes == .Valid) {
+                        simulation_gear.output_spokes = output_spokes.Valid;
+                    }
+                }
+
+                if (try dvui.button(@src(), "Confirm New Gear", .{}, .{})) {
+                    try simulation.geartrain.append(simulation_gear);
+                    simulation_gear = gear.Gear{};
+                }
+            }
+
+            //======SET OUTPUT CONSTRAINT========
+            {
+                var vbox = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1) });
+                defer vbox.deinit();
+
+                try dvui.label(@src(), "Set Output Constraint", .{}, .{});
+
+                _ = try dvui.dropdown(@src(), std.meta.fieldNames(sim.OutputConstraintTypes), &output_constraint_type, .{});
+
+                switch (output_constraint_type) {
+                    0 => {
+                        if (std.meta.activeTag(simulation.output) != .rotational) {
+                            simulation.output = .{ .rotational = 1 };
+                        }
+
+                        try dvui.label(@src(), "Rotations: ", .{}, .{});
+                        const input_spokes = try dvui.textEntryNumber(@src(), f128, .{}, .{});
+
+                        if (input_spokes == .Valid) {
+                            simulation.output = .{ .rotational = input_spokes.Valid };
+                        }
+                    },
+                    1 => {
+                        if (std.meta.activeTag(simulation.output) != .linear) {
+                            simulation.output = .{ .linear = undefined };
+                        }
+                    },
+                    else => unreachable,
+                }
+            }
+
+            if (try dvui.button(@src(), "Solve", .{}, .{})) {
+                const solution = simulation.findRatioToCompensate();
+                std.debug.print("solution: {}\n", .{solution});
             }
         }
 

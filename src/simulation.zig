@@ -8,7 +8,7 @@ pub const Solution = struct {
 
 pub const Simulation = struct {
     input: f128 = 1,
-    output: OutputConstraint,
+    output: OutputConstraint = undefined,
     geartrain: std.ArrayList(gr.Gear),
     compensation_index: ?usize = null,
 
@@ -23,9 +23,8 @@ pub const Simulation = struct {
         try self.geartrain.append(gear);
     }
 
-    pub fn init(a: std.mem.Allocator, output_constraint: OutputConstraint) Simulation {
+    pub fn init(a: std.mem.Allocator) Simulation {
         return .{
-            .output = output_constraint,
             .geartrain = std.ArrayList(gr.Gear).init(a),
         };
     }
@@ -35,11 +34,12 @@ pub const Simulation = struct {
     }
 };
 
-pub const OutputConstraint = union(enum) {
+pub const OutputConstraintTypes = enum { rotational, linear };
+pub const OutputConstraint = union(OutputConstraintTypes) {
     rotational: f128,
     linear: struct {
-        screwgear: gr.ScrewGear,
-        desired_mm_per_rotation: f128,
+        actual: gr.ScrewGear,
+        desired: gr.ScrewGear,
     },
 
     pub fn getNeededOutputValue(self: OutputConstraint) f128 {
@@ -48,10 +48,10 @@ pub const OutputConstraint = union(enum) {
                 return self.rotational;
             },
             .linear => |screw| {
-                const desired_travel = screw.desired_mm_per_rotation;
-                const actual = screw.screwgear.mm_per_rotation;
+                const desired_travel = screw.desired.getValueMM();
+                const actual_travel = screw.actual.getValueMM();
 
-                const compensation = gr.Ratio{ .input = actual, .output = desired_travel };
+                const compensation = gr.Ratio{ .input = actual_travel, .output = desired_travel };
                 return compensation.toDecimal();
             },
         }
