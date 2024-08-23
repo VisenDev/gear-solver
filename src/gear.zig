@@ -146,11 +146,13 @@ pub fn gearFromRatio(ratio: f128, opt: GearFromRatioOptions) [num_solutions]Gear
     }).compare);
 
     var result: [num_solutions]Gear = .{RATIOS[@intCast(median)].gear} ** num_solutions;
-    var i: usize = 1;
+    var i: usize = 0;
     var offset: i64 = 1;
     var mode: i8 = 1;
     while (i < result.len) {
-        const index: usize = @intCast(median + (offset * mode));
+        //might overflow
+        //TODO check for overflow
+        const index: usize = @intCast(@max(median + (offset * mode), 0));
         if (RATIOS[index].gear.withinBounds(opt)) {
             result[i] = RATIOS[index].gear;
             i += 1;

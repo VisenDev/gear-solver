@@ -32,6 +32,7 @@ pub fn main() !void {
     defer simulation.deinit();
     var simulation_gear = gear.Gear{};
     var output_constraint_type: usize = 0;
+    var solution: ?gear.Gear = null;
 
     while (!ray.WindowShouldClose()) {
         ray.BeginDrawing();
@@ -51,10 +52,12 @@ pub fn main() !void {
         ray.ClearBackground(RaylibBackend.dvuiColorToRaylib(dvui.themeGet().color_fill_window));
 
         {
+            var main_box = try dvui.box(@src(), .vertical, .{});
+            defer main_box.deinit();
             try dvui.label(@src(), "Gear Solver", .{}, .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal });
             //=======INPUT CONSTRAINT=======
             {
-                var box = try dvui.box(@src(), .vertical, .{});
+                var box = try dvui.box(@src(), .vertical, .{ .expand = .horizontal });
                 defer box.deinit();
 
                 try dvui.label(@src(), "Input Rotations:", .{}, .{});
@@ -67,7 +70,7 @@ pub fn main() !void {
 
             //=======GEARTRAIN DISPLAY========
             {
-                var vbox = try dvui.box(@src(), .vertical, .{});
+                var vbox = try dvui.box(@src(), .vertical, .{ .expand = .horizontal });
                 defer vbox.deinit();
 
                 for (simulation.geartrain.items, 0..) |geartrain_gear, i| {
@@ -79,7 +82,7 @@ pub fn main() !void {
 
             //======NEW GEARTRAIN GEAR INPUT========
             {
-                var vbox = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1) });
+                var vbox = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal });
                 defer vbox.deinit();
 
                 try dvui.label(@src(), "Add New Gear Linkage To Geartrain", .{}, .{});
@@ -115,7 +118,11 @@ pub fn main() !void {
 
             //======SET OUTPUT CONSTRAINT========
             {
-                var vbox = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1) });
+                var vbox = try dvui.box(@src(), .vertical, .{
+                    .background = true,
+                    .border = dvui.Rect.all(1),
+                    .expand = .horizontal,
+                });
                 defer vbox.deinit();
 
                 try dvui.label(@src(), "Set Output Constraint", .{}, .{});
@@ -145,8 +152,11 @@ pub fn main() !void {
             }
 
             if (try dvui.button(@src(), "Solve", .{}, .{})) {
-                const solution = simulation.findRatioToCompensate();
-                std.debug.print("solution: {}\n", .{solution});
+                solution = gear.gearFromRatio(simulation.findRatioToCompensate(), .{ .min_spokes = 25, .max_spokes = 64 })[0];
+            }
+
+            if (solution) |sol| {
+                try dvui.label(@src(), "{}", .{sol}, .{});
             }
         }
 
