@@ -7,6 +7,8 @@ const ray = RaylibBackend.c;
 pub const gear = @import("gear.zig");
 pub const sim = @import("simulation.zig");
 
+const border_opt = dvui.Options{ .expand = .horizontal, .border = dvui.Rect.all(1), .background = true };
+
 pub fn main() !void {
     var gpa_instance = std.heap.GeneralPurposeAllocator(.{}){};
     const gpa = gpa_instance.allocator();
@@ -25,7 +27,7 @@ pub fn main() !void {
     backend.log_events = true;
 
     // init dvui Window (maps onto a single OS window)
-    var win = try dvui.Window.init(@src(), gpa, backend.backend(), .{ .theme = &dvui.Theme.AdwaitaDark });
+    var win = try dvui.Window.init(@src(), gpa, backend.backend(), .{ .theme = &dvui.Theme.AdwaitaLight });
     defer win.deinit();
 
     var simulation = sim.Simulation.init(gpa);
@@ -52,15 +54,18 @@ pub fn main() !void {
         ray.ClearBackground(RaylibBackend.dvuiColorToRaylib(dvui.themeGet().color_fill_window));
 
         {
-            var main_box = try dvui.box(@src(), .vertical, .{});
+            var main_box = try dvui.box(@src(), .vertical, .{
+                .background = true,
+                .border = dvui.Rect.all(1),
+                .expand = .vertical,
+                .min_size_content = .{ .w = 250 },
+            });
             defer main_box.deinit();
-            try dvui.label(@src(), "Gear Solver", .{}, .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal });
+
             //=======INPUT CONSTRAINT=======
-            {
+            if (try dvui.expander(@src(), "Input Rotations", .{}, border_opt)) {
                 var box = try dvui.box(@src(), .vertical, .{ .expand = .horizontal });
                 defer box.deinit();
-
-                try dvui.label(@src(), "Input Rotations:", .{}, .{});
 
                 const result = try dvui.textEntryNumber(@src(), f128, .{}, .{});
                 if (result == .Valid) {
@@ -81,11 +86,9 @@ pub fn main() !void {
             }
 
             //======NEW GEARTRAIN GEAR INPUT========
-            {
-                var vbox = try dvui.box(@src(), .vertical, .{ .background = true, .border = dvui.Rect.all(1), .expand = .horizontal });
+            if (try dvui.expander(@src(), "Add Gear", .{}, border_opt)) {
+                var vbox = try dvui.box(@src(), .vertical, .{ .expand = .horizontal });
                 defer vbox.deinit();
-
-                try dvui.label(@src(), "Add New Gear Linkage To Geartrain", .{}, .{});
 
                 {
                     var hbox = try dvui.box(@src(), .vertical, .{});
@@ -117,15 +120,11 @@ pub fn main() !void {
             }
 
             //======SET OUTPUT CONSTRAINT========
-            {
+            if (try dvui.expander(@src(), "Desired Output", .{}, border_opt)) {
                 var vbox = try dvui.box(@src(), .vertical, .{
-                    .background = true,
-                    .border = dvui.Rect.all(1),
                     .expand = .horizontal,
                 });
                 defer vbox.deinit();
-
-                try dvui.label(@src(), "Set Output Constraint", .{}, .{});
 
                 _ = try dvui.dropdown(@src(), std.meta.fieldNames(sim.OutputConstraintTypes), &output_constraint_type, .{});
 
@@ -151,7 +150,14 @@ pub fn main() !void {
                 }
             }
 
-            if (try dvui.button(@src(), "Solve", .{}, .{})) {
+            //var line = try dvui.box(@src(), .vertical, .{
+            //    .background = true,
+            //    .border = dvui.Rect.all(1),
+            //    .expand = .horizontal,
+            //});
+            //line.deinit();
+
+            if (try dvui.button(@src(), "Solve", .{}, border_opt)) {
                 solution = gear.gearFromRatio(simulation.findRatioToCompensate(), .{ .min_spokes = 25, .max_spokes = 64 })[0];
             }
 
