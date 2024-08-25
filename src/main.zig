@@ -135,15 +135,27 @@ pub fn main() !void {
                         }
 
                         try dvui.label(@src(), "Rotations: ", .{}, .{});
-                        const input_spokes = try dvui.textEntryNumber(@src(), f128, .{}, .{});
+                        const rotations = try dvui.textEntryNumber(@src(), f128, .{}, .{});
 
-                        if (input_spokes == .Valid) {
-                            simulation.output = .{ .rotational = input_spokes.Valid };
+                        if (rotations == .Valid) {
+                            simulation.output = .{ .rotational = rotations.Valid };
                         }
                     },
                     1 => {
                         if (std.meta.activeTag(simulation.output) != .linear) {
                             simulation.output = .{ .linear = undefined };
+                        }
+
+                        try dvui.label(@src(), "Screw Gear Actual Motion: ", .{}, .{});
+                        const actual = try dvui.textEntryNumber(@src(), f128, .{}, .{});
+
+                        if (actual == .Valid) {}
+
+                        try dvui.label(@src(), "Desired Screw Gear Motion", .{}, .{});
+                        const desired = try dvui.textEntryNumber(@src(), f128, .{}, .{});
+
+                        if (desired == .Valid) {
+                            //simulation.output = .{ .rotational = desired.Valid };
                         }
                     },
                     else => unreachable,
